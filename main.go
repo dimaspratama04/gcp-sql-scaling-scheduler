@@ -60,12 +60,10 @@ var allowedKeys = map[string]bool{
 }
 
 func init() {
-	godotenv.Load(".env")
-	if os.Getenv("ENV") == "local" {
-		err := godotenv.Load(".env")
-		if err != nil {
-			log.Print("Error loading .env file")
-		}
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatalf("Error loading .env file")
 	}
 
 	projectID = os.Getenv("PROJECT_ID")
@@ -80,8 +78,12 @@ func main() {
 	http.HandleFunc("/check", checkInstancesHandler)
 	http.HandleFunc("/action", actionHandler)
 
-	fmt.Println("Server running at http://localhost:" + port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	host := "0.0.0.0"
+	addr := host + ":" + port
+
+	log.Printf("Server running on http://%s\n", addr)
+
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
 	}
 }
