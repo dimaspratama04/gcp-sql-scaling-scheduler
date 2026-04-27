@@ -24,22 +24,18 @@ type SQLInstancesData struct {
 	Tier            string `json:"tier"`
 }
 
-type TemplateSuccessResponse struct {
-	StatusCode int              `json:"status_code"`
-	StatusText string           `json:"status_text"`
-	Message    string           `json:"message"`
-	Timestamp  string           `json:"timestamp"`
-	Data       SQLInstancesData `json:"data"`
+type ResponseJSON struct {
+	StatusCode int          `json:"status_code"`
+	StatusText string       `json:"status_text"`
+	Message    string       `json:"message"`
+	Timestamp  string       `json:"timestamp"`
+	Data       interface{}  `json:"data,omitempty"`
+	Error      *ErrorDetail `json:"error,omitempty"`
 }
 
-type TemplateErrorResponse struct {
-	Type        string `json:"type"`
-	Description string `json:"description"`
-}
-
-type ErrorJSON struct {
-	Type        string `json:"type"`
-	Description string `json:"description"`
+type ErrorDetail struct {
+	Type        string `json: type`
+	Description string `json: description`
 }
 
 type RequestPayload struct {
@@ -227,12 +223,12 @@ func checkInstancesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeSuccessResponse(w http.ResponseWriter, statusCode int, message string, data interface{}) {
-	response := map[string]interface{}{
-		"data":        data,
-		"status_code": statusCode,
-		"status_text": http.StatusText(statusCode),
-		"message":     message,
-		"timestamp":   time.Now().Format(time.RFC3339),
+	response := ResponseJSON{
+		StatusCode: statusCode,
+		StatusText: http.StatusText(statusCode),
+		Message:    message,
+		Timestamp:  time.Now().Format(time.RFC3339),
+		Data:       data,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -249,7 +245,7 @@ func writeErrorResponse(w http.ResponseWriter, statusCode int, message string, e
 		errorType = fmt.Sprintf("googleapi_%d", e.Code)
 		errorDescription = e.Message
 	case error:
-		errorType = "internal_error"
+		errorType = "internal_server_error"
 		errorDescription = e.Error()
 	case string:
 		errorType = "client_error"
@@ -259,13 +255,15 @@ func writeErrorResponse(w http.ResponseWriter, statusCode int, message string, e
 		errorDescription = fmt.Sprintf("%v", e)
 	}
 
-	response := map[string]interface{}{
-		"status_code":       statusCode,
-		"status_text":       http.StatusText(statusCode),
-		"message":           message,
-		"timestamp":         time.Now().Format(time.RFC3339),
-		"error_type":        errorType,
-		"error_description": errorDescription,
+	response := ResponseJSON{
+		StatusCode: statusCode,
+		StatusText: http.StatusText(statusCode),
+		Message:    message,
+		Timestamp:  time.Now().Format(time.RFC3339),
+		Error: &ErrorDetail{
+			Type:        errorType,
+			Description: errorDescription,
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
